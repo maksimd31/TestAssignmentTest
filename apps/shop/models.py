@@ -18,14 +18,14 @@ class User(AbstractUser):
         updated_at (DateTimeField): Timestamp when the user was last updated.
     """
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(blank=True)
+    phone_number = models.CharField(blank=True, null=True)
     date_of_birth = models.DateField(null=True, blank=True)
-    address = models.TextField(blank=True)
+    address = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name', 'phone_number']
+    REQUIRED_FIELDS = ['username']  # Only username required for createsuperuser
 
     def __str__(self):
         """
@@ -129,6 +129,11 @@ class Order(models.Model):
             *args: Variable length argument list.
             **kwargs: Arbitrary keyword arguments.
         """
+        # Сначала сохраняем объект, чтобы получить primary key
+        if not self.pk:
+            super().save(*args, **kwargs)
+
+        # Затем обновляем total_price только если объект уже существует
         self.total_price = self.calculate_total_price()
         super().save(*args, **kwargs)
 
