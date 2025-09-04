@@ -1,23 +1,25 @@
 from rest_framework.response import Response
-from rest_framework.views import APIView
+from rest_framework.viewsets import ViewSet
 from rest_framework import status
+from rest_framework.decorators import action
 from django.db import IntegrityError
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from .models import Product
 from .serializers import CreateUserSerializer, LoginSerializer
 
 
-class RegisterAPIView(APIView):
+class AuthViewSet(ViewSet):
     """
-    API view for user registration.
+    ViewSet for user authentication operations.
 
-    Handles POST requests to create new user accounts with email authentication.
+    Provides endpoints for user registration and login with JWT token generation.
     """
-    serializer_class = CreateUserSerializer
 
-    def post(self, request):
+    @action(detail=False, methods=['post'], url_path='register')
+    def register(self, request):
         """
-        Create a new user account.
+        Register a new user account.
 
         Args:
             request: HTTP request containing user data
@@ -25,7 +27,7 @@ class RegisterAPIView(APIView):
         Returns:
             Response: Success message with 201 status or errors with 400 status
         """
-        serializer = self.serializer_class(data=request.data)
+        serializer = CreateUserSerializer(data=request.data)
 
         if serializer.is_valid():
             try:
@@ -42,16 +44,8 @@ class RegisterAPIView(APIView):
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-class LoginAPIView(APIView):
-    """
-    API view for user authentication and JWT token generation.
-
-    Handles POST requests to authenticate users and return JWT tokens.
-    """
-    serializer_class = LoginSerializer
-
-    def post(self, request):
+    @action(detail=False, methods=['post'], url_path='login')
+    def login(self, request):
         """
         Authenticate user and return JWT tokens.
 
@@ -61,7 +55,7 @@ class LoginAPIView(APIView):
         Returns:
             Response: JWT tokens with 200 status or errors with 400 status
         """
-        serializer = self.serializer_class(data=request.data)
+        serializer = LoginSerializer(data=request.data)
 
         if serializer.is_valid():
             user = serializer.validated_data['user']

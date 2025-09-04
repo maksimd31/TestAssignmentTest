@@ -262,7 +262,7 @@ class RegisterAPIViewTest(APITestCase):
 
     def setUp(self):
         """Set up test data"""
-        self.register_url = reverse('shop:register')
+        self.register_url = reverse('shop:auth-register')
         self.valid_user_data = {
             'username': 'testuser',
             'email': 'test@example.com',
@@ -318,7 +318,7 @@ class LoginAPIViewTest(APITestCase):
 
     def setUp(self):
         """Set up test data"""
-        self.login_url = reverse('shop:login')
+        self.login_url = reverse('shop:auth-login')
         self.user = User.objects.create_user(
             username='testuser',
             email='test@example.com',
@@ -467,3 +467,5 @@ class IntegrationTest(TestCase):
         self.assertEqual(self.product.order_items.count(), 2)
         self.assertEqual(order1.products.count(), 1)
         self.assertEqual(order2.products.count(), 1)
+
+# python manage.py test apps.shop.tests

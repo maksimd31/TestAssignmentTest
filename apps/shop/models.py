@@ -116,8 +116,7 @@ class Order(models.Model):
             Decimal: The total price of all items in the order.
         """
         total = sum(
-            item.quantity * item.price_at_purchase
-            for item in self.items.all()
+            item.quantity * item.price_at_purchase for item in self.items.all()
         )
         return total
 
