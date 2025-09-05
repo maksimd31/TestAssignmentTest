@@ -9,9 +9,9 @@ from rest_framework import status
 from django.urls import reverse
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from .models import Product, Order, OrderItem
+from .models import Product, Order, OrderItem, User
 
-User = get_user_model()
+from .views import IsAdminOrReadOnly
 
 
 class UserModelTest(TestCase):

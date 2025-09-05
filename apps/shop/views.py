@@ -2,11 +2,14 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 from rest_framework import status
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
 from django.db import IntegrityError
+from django.shortcuts import get_object_or_404
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from .models import Product
-from .serializers import CreateUserSerializer, LoginSerializer
+from .paginations import ProductPagination
+from .permissions import IsAdminOrReadOnly
+from .serializers import CreateUserSerializer, LoginSerializer, ProductSerializer
 
 
 class AuthViewSet(ViewSet):
@@ -78,3 +81,81 @@ class AuthViewSet(ViewSet):
             }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+
+
+
+class ProductViewSet(ViewSet):
+    """
+    ViewSet for managing products with full CRUD operations.
+
+    Supports filtering by category and price range with pagination.
+    Admin-only permissions for write operations.
+    """
+
+    permission_classes = [IsAdminOrReadOnly]
+    pagination_class = ProductPagination
+
+    def get_queryset(self, request):
+        """Get filtered and ordered Product queryset."""
+        queryset = Product.objects.all()
+
+        # Apply filters
+        category = request.query_params.get("category")
+        if category:
+            queryset = queryset.filter(category=category)
+
+        # Price range filters with error handling
+        for price_param, lookup in [("min_price", "price__gte"), ("max_price", "price__lte")]:
+            price_value = request.query_params.get(price_param)
+            if price_value:
+                try:
+                    queryset = queryset.filter(**{lookup: float(price_value)})
+                except (ValueError, TypeError):
+                    pass  # Ignore invalid price values
+
+        return queryset.order_by("name")
+
+    def list(self, request):
+        """List products with pagination and filtering."""
+        queryset = self.get_queryset(request)
+        paginator = self.pagination_class()
+        page = paginator.paginate_queryset(queryset, request)
+        serializer = ProductSerializer(page, many=True)
+        return paginator.get_paginated_response(serializer.data)
+
+    def retrieve(self, request, pk=None):
+        """Retrieve a specific product by ID."""
+        product = get_object_or_404(Product, pk=pk)
+        serializer = ProductSerializer(product)
+        return Response(serializer.data)
+
+    def create(self, request):
+        """Create a new product (admin only)."""
+        serializer = ProductSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        product = serializer.save()
+        return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
+
+    def update(self, request, pk=None):
+        """Update an entire product (admin only)."""
+        product = get_object_or_404(Product, pk=pk)
+        serializer = ProductSerializer(product, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def partial_update(self, request, pk=None):
+        """Partially update a product (admin only)."""
+        product = get_object_or_404(Product, pk=pk)
+        serializer = ProductSerializer(product, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def destroy(self, request, pk=None):
+        """Delete a product (admin only)."""
+        product = get_object_or_404(Product, pk=pk)
+        product.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

@@ -73,6 +73,10 @@ class Product(models.Model):
         """
         return self.name
 
+    class Meta:
+        """like pagination to provide a consistent order of products. """
+        ordering = ['name']
+
 
 class Order(models.Model):
     """
